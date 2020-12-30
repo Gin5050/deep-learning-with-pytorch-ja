@@ -1,3 +1,4 @@
+import random
 import copy
 import csv
 import functools
@@ -136,7 +137,6 @@ class Ct:
         return ct_chunk, center_irc
 
 
-@functools.lru_cache(1, typed=True)
 def getCt(series_uid):
     return Ct(series_uid)
 
@@ -166,6 +166,7 @@ class LunaDataset(Dataset):
         elif val_stride > 0:
             del self.candidateInfo_list[::val_stride]
             assert self.candidateInfo_list
+        random.shuffle(self.candidateInfo_list)
 
         log.info("{!r}: {} {} samples".format(
             self,
