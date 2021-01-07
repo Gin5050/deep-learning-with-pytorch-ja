@@ -14,14 +14,20 @@ log = logging.getLogger(__name__)
 # log.setLevel(logging.INFO)
 log.setLevel(logging.DEBUG)
 
+
 class UNetWrapper(nn.Module):
     def __init__(self, **kwargs):
+        # kwargs はコンストラクタに渡される全てのキーワード引数を含む辞書
         super().__init__()
 
+        # BatchNorm2d は入力のチャンネル数を必要とする
+        # その情報をキーワード引数から取り出す
         self.input_batchnorm = nn.BatchNorm2d(kwargs['in_channels'])
+        # U-Netの取り込み部分はこれだけだが、ほとんどの処理はここで行われる
         self.unet = UNet(**kwargs)
         self.final = nn.Sigmoid()
 
+        # 第11章と同じように独自の重み初期化を行う
         self._init_weights()
 
     def _init_weights(self):
