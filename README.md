@@ -1,13 +1,17 @@
 # deep-learning-with-pytorch-ja
 
-deep-learning-with-pytorch の日本語版 repository です。
+deep-learning-with-pytorch の日本語版リポジトリです。
+
+[こちら](https://github.com/deep-learning-with-pytorch/dlwpt-code)が原著のリポジトリになります。本リポジトリにあるコードは演習問題をのぞいて全て、上記リポジトリから引用しております。
 
 ## 演習問題について
 
 各章の演習問題は該当するフォルダに Jupyter NoteBook 形式で格納されています。
 実行は Google Colaboratory 上で行われることを想定しています。
 
-ただし、10 章以降については扱うデータセットが大きい（100GB 以上）ため、無料版の Google Colaboratory のストレージは再現ができません。
+ただし、第2部の一部の演習については扱うデータセットのサイズが大きい（100GB 以上）ため、Google Coraboratolyではなく、通常のサーバでの実行を想定しています。
+
+また、解答については原著で示されていたわけではなく、日本語版の訳者で解答したものです。
 
 ## 疑問点・修正点は Issue にて管理しています。
 
