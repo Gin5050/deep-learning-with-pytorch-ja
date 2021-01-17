@@ -15,9 +15,7 @@ log.setLevel(logging.DEBUG)
 
 
 class ClassificationAugmentation(nn.Module):
-    def __init__(
-            self, flip=None, offset=None, scale=None, rotate=None, noise=None
-    ):
+    def __init__(self, flip=None, offset=None, scale=None, rotate=None, noise=None):
         super().__init__()
 
         self.flip = flip
@@ -26,30 +24,21 @@ class ClassificationAugmentation(nn.Module):
         self.rotate = rotate
         self.noise = noise
 
-    def forward(self, input_g, label_g):
-        print('====== 1 ======')
-        print(input_g.shape)
+    def forward(self, input_g):
         transform_t = self._build2dTransformMatrix()
-        print('====== 2 ======')
-        print(transform_t.shape)
-        transform_t = transform_t.expand(input_g.shape[0], -1, -1)
-        print('====== 3 ======')
-        print(transform_t.shape)
-        transform_t = transform_t.to(input_g.device, torch.float32)
-        print(transform_t[:3].unsqueeze(0).expand(
-            input_g.size(0), -1, -1).shape)
-        affine_t = F.affine_grid(transform_t[:3].unsqueeze(0).expand(input_g.size(0), -1, -1),
-                                 input_g.size(), align_corners=False)
-        # affine_t = F.affine_grid(transform_t[:, :2],
-        #                          input_g.size(), align_corners=False)
-        print('====== 4 ======')
-        print(affine_t.shape)
-        augmented_input_g = F.grid_sample(input_g,
-                                          affine_t, padding_mode='border',
-                                          align_corners=False)
-        augmented_label_g = F.grid_sample(label_g.to(torch.float32),
-                                          affine_t, padding_mode='border',
-                                          align_corners=False)
+
+        affine_t = F.affine_grid(
+            transform_t[:3]
+            .unsqueeze(0)
+            .expand(input_g.size(0), -1, -1)
+            .to(input_g.device, torch.float32),
+            input_g.size(),
+            align_corners=False,
+        )
+
+        augmented_input_g = F.grid_sample(
+            input_g, affine_t, padding_mode="border", align_corners=False
+        )
 
         if self.noise:
             noise_t = torch.randn_like(augmented_input_g)
@@ -57,7 +46,7 @@ class ClassificationAugmentation(nn.Module):
 
             augmented_input_g += noise_t
 
-        return augmented_input_g, augmented_label_g > 0.5
+        return augmented_input_g
 
     def _build2dTransformMatrix(self):
         transform_t = torch.eye(4, dtype=torch.float32)
@@ -69,12 +58,12 @@ class ClassificationAugmentation(nn.Module):
 
             if self.offset:
                 offset_float = self.offset
-                random_float = (random.random() * 2 - 1)
+                random_float = random.random() * 2 - 1
                 transform_t[3, i] = offset_float * random_float
 
             if self.scale:
                 scale_float = self.scale
-                random_float = (random.random() * 2 - 1)
+                random_float = random.random() * 2 - 1
                 transform_t[i, i] *= 1.0 + scale_float * random_float
 
         if self.rotate:
@@ -90,12 +79,15 @@ class ClassificationAugmentation(nn.Module):
             s = np.sin(angle_rad)
             c = np.cos(angle_rad)
 
-            rotation_t = torch.tensor([
-                [c, -s, 0, 0],
-                [s, c, 0, 0],
-                [0, 0, 1, 0],
-                [0, 0, 0, 1],
-            ], dtype=torch.float32)
+            rotation_t = torch.tensor(
+                [
+                    [c, -s, 0, 0],
+                    [s, c, 0, 0],
+                    [0, 0, 1, 0],
+                    [0, 0, 0, 1],
+                ],
+                dtype=torch.float32,
+            )
 
             transform_t @= rotation_t
 
@@ -129,11 +121,15 @@ class LunaModel(nn.Module):
                 nn.ConvTranspose3d,
             }:
                 nn.init.kaiming_normal_(
-                    m.weight.data, a=0, mode='fan_out', nonlinearity='relu',
+                    m.weight.data,
+                    a=0,
+                    mode="fan_out",
+                    nonlinearity="relu",
                 )
                 if m.bias is not None:
-                    fan_in, fan_out = \
-                        nn.init._calculate_fan_in_and_fan_out(m.weight.data)
+                    fan_in, fan_out = nn.init._calculate_fan_in_and_fan_out(
+                        m.weight.data
+                    )
                     bound = 1 / math.sqrt(fan_out)
                     nn.init.normal_(m.bias, -bound, bound)
 
@@ -159,11 +155,19 @@ class LunaBlock(nn.Module):
         super().__init__()
 
         self.conv1 = nn.Conv3d(
-            in_channels, conv_channels, kernel_size=3, padding=1, bias=True,
+            in_channels,
+            conv_channels,
+            kernel_size=3,
+            padding=1,
+            bias=True,
         )
         self.relu1 = nn.ReLU(inplace=True)
         self.conv2 = nn.Conv3d(
-            conv_channels, conv_channels, kernel_size=3, padding=1, bias=True,
+            conv_channels,
+            conv_channels,
+            kernel_size=3,
+            padding=1,
+            bias=True,
         )
         self.relu2 = nn.ReLU(inplace=True)
 
