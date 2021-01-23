@@ -119,6 +119,7 @@ class LunaTrainingApp:
 
         self.trn_writer = None
         self.val_writer = None
+        self.test_writer = None
         self.totalTrainingSamples_count = 0
 
         self.augmentation_dict = {}
@@ -204,6 +205,28 @@ class LunaTrainingApp:
 
         return val_dl
 
+    def initTestDl(self):
+        test_ds = LunaDataset(
+            val_stride=11,
+            isValSet_bool=True,
+        )
+
+        print("======val len")
+        print(len(test_ds))
+
+        batch_size = self.cli_args.batch_size
+        if self.use_cuda:
+            batch_size *= torch.cuda.device_count()
+
+        test_dl = DataLoader(
+            test_ds,
+            batch_size=batch_size,
+            num_workers=self.cli_args.num_workers,
+            pin_memory=self.use_cuda,
+        )
+
+        return test_dl
+
     def initTensorboardWriters(self):
         if self.trn_writer is None:
             log_dir = os.path.join("runs", self.cli_args.tb_prefix, self.time_str)
@@ -214,12 +237,16 @@ class LunaTrainingApp:
             self.val_writer = SummaryWriter(
                 log_dir=log_dir + "-val_cls-" + self.cli_args.comment
             )
+            self.test_writer = SummaryWriter(
+                log_dir=log_dir + "-test_cls-" + self.cli_args.comment
+            )
 
     def main(self):
         log.info("Starting {}, {}".format(type(self).__name__, self.cli_args))
 
         train_dl = self.initTrainDl()
         val_dl = self.initValDl()
+        test_dl = self.initTestDl()
 
         for epoch_ndx in range(1, self.cli_args.epochs + 1):
 
@@ -240,9 +267,13 @@ class LunaTrainingApp:
             valMetrics_t = self.doValidation(epoch_ndx, val_dl)
             self.logMetrics(epoch_ndx, "val", valMetrics_t)
 
+            testMetrics_t = self.doValidation(epoch_ndx, test_dl)
+            self.logMetrics(epoch_ndx, "test", testMetrics_t)
+
         if hasattr(self, "trn_writer"):
             self.trn_writer.close()
             self.val_writer.close()
+            self.test_writer.close()
 
     def doTraining(self, epoch_ndx, train_dl):
         self.model.train()

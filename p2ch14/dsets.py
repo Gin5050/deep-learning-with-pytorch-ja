@@ -25,36 +25,46 @@ log = logging.getLogger(__name__)
 # log.setLevel(logging.INFO)
 log.setLevel(logging.DEBUG)
 
-raw_cache = getCache('part2ch14_raw')
+raw_cache = getCache("part2ch14_raw")
 
 CandidateInfoTuple = namedtuple(
-    'CandidateInfoTuple',
-    'isNodule_bool, hasAnnotation_bool, isMal_bool, diameter_mm, series_uid, center_xyz',
+    "CandidateInfoTuple",
+    "isNodule_bool, hasAnnotation_bool, isMal_bool, diameter_mm, series_uid, center_xyz",
 )
 MaskTuple = namedtuple(
-    'MaskTuple',
-    'raw_dense_mask, dense_mask, body_mask, air_mask, raw_candidate_mask, candidate_mask, lung_mask, neg_mask, pos_mask',
+    "MaskTuple",
+    "raw_dense_mask, dense_mask, body_mask, air_mask, raw_candidate_mask, candidate_mask, lung_mask, neg_mask, pos_mask",
 )
+
 
 @functools.lru_cache(1)
 def getCandidateInfoList(requireOnDisk_bool=True):
     # We construct a set with all series_uids that are present on disk.
     # This will let us use the data, even if we haven't downloaded all of
     # the subsets yet.
-    mhd_list = glob.glob('data-unversioned/part2/luna/subset*/*.mhd')
+    mhd_list = glob.glob("data-unversioned/part2/luna/subset*/*.mhd")
     presentOnDisk_set = {os.path.split(p)[-1][:-4] for p in mhd_list}
 
     candidateInfo_list = []
-    with open('data/part2/luna/annotations_with_malignancy.csv', "r") as f:
+    with open("data/part2/luna/annotations_with_malignancy.csv", "r") as f:
         for row in list(csv.reader(f))[1:]:
             series_uid = row[0]
             annotationCenter_xyz = tuple([float(x) for x in row[1:4]])
             annotationDiameter_mm = float(row[4])
-            isMal_bool = {'False': False, 'True': True}[row[5]]
+            isMal_bool = {"False": False, "True": True}[row[5]]
 
-            candidateInfo_list.append(CandidateInfoTuple(True, True, isMal_bool, annotationDiameter_mm, series_uid, annotationCenter_xyz))
+            candidateInfo_list.append(
+                CandidateInfoTuple(
+                    True,
+                    True,
+                    isMal_bool,
+                    annotationDiameter_mm,
+                    series_uid,
+                    annotationCenter_xyz,
+                )
+            )
 
-    with open('data/part2/luna/candidates.csv', "r") as f:
+    with open("data/part2/luna/candidates.csv", "r") as f:
         for row in list(csv.reader(f))[1:]:
             series_uid = row[0]
 
@@ -65,17 +75,20 @@ def getCandidateInfoList(requireOnDisk_bool=True):
             candidateCenter_xyz = tuple([float(x) for x in row[1:4]])
 
             if not isNodule_bool:
-                candidateInfo_list.append(CandidateInfoTuple(
-                    False,
-                    False,
-                    False,
-                    0.0,
-                    series_uid,
-                    candidateCenter_xyz,
-                ))
+                candidateInfo_list.append(
+                    CandidateInfoTuple(
+                        False,
+                        False,
+                        False,
+                        0.0,
+                        series_uid,
+                        candidateCenter_xyz,
+                    )
+                )
 
     candidateInfo_list.sort(reverse=True)
     return candidateInfo_list
+
 
 @functools.lru_cache(1)
 def getCandidateInfoDict(requireOnDisk_bool=True):
@@ -83,7 +96,9 @@ def getCandidateInfoDict(requireOnDisk_bool=True):
     candidateInfo_dict = {}
 
     for candidateInfo_tup in candidateInfo_list:
-        candidateInfo_dict.setdefault(candidateInfo_tup.series_uid, []).append(candidateInfo_tup)
+        candidateInfo_dict.setdefault(candidateInfo_tup.series_uid, []).append(
+            candidateInfo_tup
+        )
 
     return candidateInfo_dict
 
@@ -91,7 +106,7 @@ def getCandidateInfoDict(requireOnDisk_bool=True):
 class Ct:
     def __init__(self, series_uid):
         mhd_path = glob.glob(
-            'data-unversioned/part2/luna/subset*/{}.mhd'.format(series_uid)
+            "data-unversioned/part2/luna/subset*/{}.mhd".format(series_uid)
         )[0]
 
         ct_mhd = sitk.ReadImage(mhd_path)
@@ -111,14 +126,25 @@ class Ct:
         self.direction_a = np.array(ct_mhd.GetDirection()).reshape(3, 3)
 
     def getRawCandidate(self, center_xyz, width_irc):
-        center_irc = xyz2irc(center_xyz, self.origin_xyz, self.vxSize_xyz, self.direction_a)
+        center_irc = xyz2irc(
+            center_xyz, self.origin_xyz, self.vxSize_xyz, self.direction_a
+        )
 
         slice_list = []
         for axis, center_val in enumerate(center_irc):
-            start_ndx = int(round(center_val - width_irc[axis]/2))
+            start_ndx = int(round(center_val - width_irc[axis] / 2))
             end_ndx = int(start_ndx + width_irc[axis])
 
-            assert center_val >= 0 and center_val < self.hu_a.shape[axis], repr([self.series_uid, center_xyz, self.origin_xyz, self.vxSize_xyz, center_irc, axis])
+            assert center_val >= 0 and center_val < self.hu_a.shape[axis], repr(
+                [
+                    self.series_uid,
+                    center_xyz,
+                    self.origin_xyz,
+                    self.vxSize_xyz,
+                    center_irc,
+                    axis,
+                ]
+            )
 
             if start_ndx < 0:
                 # log.warning("Crop outside of CT array: {} {}, center:{} shape:{} width:{}".format(
@@ -143,21 +169,23 @@ class Ct:
 def getCt(series_uid):
     return Ct(series_uid)
 
+
 @raw_cache.memoize(typed=True)
 def getCtRawCandidate(series_uid, center_xyz, width_irc):
     ct = getCt(series_uid)
     ct_chunk, center_irc = ct.getRawCandidate(center_xyz, width_irc)
     return ct_chunk, center_irc
 
+
 @raw_cache.memoize(typed=True)
 def getCtSampleSize(series_uid):
     ct = Ct(series_uid, buildMasks_bool=False)
     return len(ct.negative_indexes)
 
+
 def getCtAugmentedCandidate(
-        augmentation_dict,
-        series_uid, center_xyz, width_irc,
-        use_cache=True):
+    augmentation_dict, series_uid, center_xyz, width_irc, use_cache=True
+):
     if use_cache:
         ct_chunk, center_irc = getCtRawCandidate(series_uid, center_xyz, width_irc)
     else:
@@ -170,51 +198,52 @@ def getCtAugmentedCandidate(
     # ... <1>
 
     for i in range(3):
-        if 'flip' in augmentation_dict:
+        if "flip" in augmentation_dict:
             if random.random() > 0.5:
-                transform_t[i,i] *= -1
+                transform_t[i, i] *= -1
 
-        if 'offset' in augmentation_dict:
-            offset_float = augmentation_dict['offset']
-            random_float = (random.random() * 2 - 1)
+        if "offset" in augmentation_dict:
+            offset_float = augmentation_dict["offset"]
+            random_float = random.random() * 2 - 1
             transform_t[i, 3] = offset_float * random_float
 
-        if 'scale' in augmentation_dict:
-            scale_float = augmentation_dict['scale']
-            random_float = (random.random() * 2 - 1)
-            transform_t[i,i] *= 1.0 + scale_float * random_float
+        if "scale" in augmentation_dict:
+            scale_float = augmentation_dict["scale"]
+            random_float = random.random() * 2 - 1
+            transform_t[i, i] *= 1.0 + scale_float * random_float
 
-
-    if 'rotate' in augmentation_dict:
+    if "rotate" in augmentation_dict:
         angle_rad = random.random() * math.pi * 2
         s = math.sin(angle_rad)
         c = math.cos(angle_rad)
 
-        rotation_t = torch.tensor([
-            [c, -s, 0, 0],
-            [s, c, 0, 0],
-            [0, 0, 1, 0],
-            [0, 0, 0, 1],
-        ])
+        rotation_t = torch.tensor(
+            [
+                [c, -s, 0, 0],
+                [s, c, 0, 0],
+                [0, 0, 1, 0],
+                [0, 0, 0, 1],
+            ]
+        )
 
         transform_t @= rotation_t
 
     affine_t = F.affine_grid(
-            transform_t[:3].unsqueeze(0).to(torch.float32),
-            ct_t.size(),
-            align_corners=False,
-        )
+        transform_t[:3].unsqueeze(0).to(torch.float32),
+        ct_t.size(),
+        align_corners=False,
+    )
 
     augmented_chunk = F.grid_sample(
-            ct_t,
-            affine_t,
-            padding_mode='border',
-            align_corners=False,
-        ).to('cpu')
+        ct_t,
+        affine_t,
+        padding_mode="border",
+        align_corners=False,
+    ).to("cpu")
 
-    if 'noise' in augmentation_dict:
+    if "noise" in augmentation_dict:
         noise_t = torch.randn_like(augmented_chunk)
-        noise_t *= augmentation_dict['noise']
+        noise_t *= augmentation_dict["noise"]
 
         augmented_chunk += noise_t
 
@@ -222,15 +251,16 @@ def getCtAugmentedCandidate(
 
 
 class LunaDataset(Dataset):
-    def __init__(self,
-                 val_stride=0,
-                 isValSet_bool=None,
-                 series_uid=None,
-                 sortby_str='random',
-                 ratio_int=0,
-                 augmentation_dict=None,
-                 candidateInfo_list=None,
-            ):
+    def __init__(
+        self,
+        val_stride=0,
+        isValSet_bool=None,
+        series_uid=None,
+        sortby_str="random",
+        ratio_int=0,
+        augmentation_dict=None,
+        candidateInfo_list=None,
+    ):
         self.ratio_int = ratio_int
         self.augmentation_dict = augmentation_dict
 
@@ -244,7 +274,12 @@ class LunaDataset(Dataset):
         if series_uid:
             self.series_list = [series_uid]
         else:
-            self.series_list = sorted(set(candidateInfo_tup.series_uid for candidateInfo_tup in self.candidateInfo_list))
+            self.series_list = sorted(
+                set(
+                    candidateInfo_tup.series_uid
+                    for candidateInfo_tup in self.candidateInfo_list
+                )
+            )
 
         if isValSet_bool:
             assert val_stride > 0, val_stride
@@ -255,34 +290,34 @@ class LunaDataset(Dataset):
             assert self.series_list
 
         series_set = set(self.series_list)
-        self.candidateInfo_list = [x for x in self.candidateInfo_list if x.series_uid in series_set]
+        self.candidateInfo_list = [
+            x for x in self.candidateInfo_list if x.series_uid in series_set
+        ]
 
-        if sortby_str == 'random':
+        if sortby_str == "random":
             random.shuffle(self.candidateInfo_list)
-        elif sortby_str == 'series_uid':
+        elif sortby_str == "series_uid":
             self.candidateInfo_list.sort(key=lambda x: (x.series_uid, x.center_xyz))
-        elif sortby_str == 'label_and_size':
+        elif sortby_str == "label_and_size":
             pass
         else:
             raise Exception("Unknown sort: " + repr(sortby_str))
 
-        self.neg_list = \
-            [nt for nt in self.candidateInfo_list if not nt.isNodule_bool]
-        self.pos_list = \
-            [nt for nt in self.candidateInfo_list if nt.isNodule_bool]
-        self.ben_list = \
-            [nt for nt in self.pos_list if not nt.isMal_bool]
-        self.mal_list = \
-            [nt for nt in self.pos_list if nt.isMal_bool]
+        self.neg_list = [nt for nt in self.candidateInfo_list if not nt.isNodule_bool]
+        self.pos_list = [nt for nt in self.candidateInfo_list if nt.isNodule_bool]
+        self.ben_list = [nt for nt in self.pos_list if not nt.isMal_bool]
+        self.mal_list = [nt for nt in self.pos_list if nt.isMal_bool]
 
-        log.info("{!r}: {} {} samples, {} neg, {} pos, {} ratio".format(
-            self,
-            len(self.candidateInfo_list),
-            "validation" if isValSet_bool else "training",
-            len(self.neg_list),
-            len(self.pos_list),
-            '{}:1'.format(self.ratio_int) if self.ratio_int else 'unbalanced'
-        ))
+        log.info(
+            "{!r}: {} {} samples, {} neg, {} pos, {} ratio".format(
+                self,
+                len(self.candidateInfo_list),
+                "validation" if isValSet_bool else "training",
+                len(self.neg_list),
+                len(self.pos_list),
+                "{}:1".format(self.ratio_int) if self.ratio_int else "unbalanced",
+            )
+        )
 
     def shuffleSamples(self):
         if self.ratio_int:
@@ -353,7 +388,13 @@ class LunaDataset(Dataset):
             label_t[1] = True
             index_t = 1
 
-        return candidate_t, label_t, index_t, candidateInfo_tup.series_uid, torch.tensor(center_irc)
+        return (
+            candidate_t,
+            label_t,
+            index_t,
+            candidateInfo_tup.series_uid,
+            torch.tensor(center_irc),
+        )
 
 
 class MalignantLunaDataset(LunaDataset):
