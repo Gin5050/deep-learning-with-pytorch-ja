@@ -205,28 +205,6 @@ class LunaTrainingApp:
 
         return val_dl
 
-    def initTestDl(self):
-        test_ds = LunaDataset(
-            val_stride=11,
-            isValSet_bool=True,
-        )
-
-        print("======val len")
-        print(len(test_ds))
-
-        batch_size = self.cli_args.batch_size
-        if self.use_cuda:
-            batch_size *= torch.cuda.device_count()
-
-        test_dl = DataLoader(
-            test_ds,
-            batch_size=batch_size,
-            num_workers=self.cli_args.num_workers,
-            pin_memory=self.use_cuda,
-        )
-
-        return test_dl
-
     def initTensorboardWriters(self):
         if self.trn_writer is None:
             log_dir = os.path.join("runs", self.cli_args.tb_prefix, self.time_str)

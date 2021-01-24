@@ -89,40 +89,6 @@ def getCandidateInfoList(requireOnDisk_bool=True):
                 )
 
     candidateInfo_list.sort(reverse=True)
-
-    # 存在しないseries_uidを削除
-    idx_list = []
-    print(len(candidateInfo_list))
-    for idx, candidate_tup in enumerate(candidateInfo_list):
-        series_uid = candidate_tup.series_uid
-        try:
-            mhd_path = glob.glob(
-                "data-unversioned/part2/luna/subset*/{}.mhd".format(series_uid)
-            )[0]
-        except IndexError:
-            idx_list.append(idx)
-
-    for idx in idx_list:
-        del candidateInfo_list[idx]
-    print(len(candidateInfo_list))
-    print(len(idx_list))
-
-    # idx_list = []
-    # print(len(candidateInfo_list))
-    # for idx, candidate_tup in enumerate(candidateInfo_list):
-    #     series_uid = candidate_tup.series_uid
-    #     try:
-    #         mhd_path = glob.glob(
-    #             "data-unversioned/part2/luna/subset*/{}.mhd".format(series_uid)
-    #         )[0]
-    #     except IndexError:
-    #         idx_list.append(idx)
-
-    # for idx in idx_list:
-    #     del candidateInfo_list[idx]
-    # print(len(candidateInfo_list))
-    # print(len(idx_list))
-
     return candidateInfo_list
 
 
@@ -292,8 +258,6 @@ class Luna2dSegmentationDataset(Dataset):
         self,
         val_stride=0,
         isValSet_bool=None,
-        val_test_stride=0,
-        isTestSet_bool=None,
         series_uid=None,
         contextSlices_count=3,
         fullCt_bool=False,
@@ -306,32 +270,13 @@ class Luna2dSegmentationDataset(Dataset):
         else:
             self.series_list = sorted(getCandidateInfoDict().keys())
 
-        assert val_test_stride > 0, val_test_stride
-        self.val_test_list = self.series_list[::val_test_stride]
-        assert self.val_test_list
-        del self.series_list[::val_test_stride]
-        assert self.series_list
-
-        print("test_val===========")
-        print(len(self.val_test_list))
-
-        print("train===========")
-        print(len(self.series_list))
-
         if isValSet_bool:
             assert val_stride > 0, val_stride
-            self.series_list = self.val_test_list[::val_stride]
+            self.series_list = self.series_list[::val_stride]
             assert self.series_list
-        elif isTestSet_bool:
-            del self.val_test_list[::val_stride]
-            self.series_list = self.val_test_list
+        elif val_stride > 0:
+            del self.series_list[::val_stride]
             assert self.series_list
-
-        print("test val flag===========")
-        print(isValSet_bool, "\t", isTestSet_bool)
-
-        print("list len===========")
-        print(len(self.series_list))
 
         self.sample_list = []
         for series_uid in self.series_list:
