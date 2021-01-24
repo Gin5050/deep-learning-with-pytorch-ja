@@ -49,10 +49,7 @@ class SegmentationTrainingApp:
 
         parser = argparse.ArgumentParser()
         parser.add_argument(
-            "--batch-size",
-            help="Batch size to use for training",
-            default=16,
-            type=int,
+            "--batch-size", help="Batch size to use for training", default=16, type=int,
         )
         parser.add_argument(
             "--num-workers",
@@ -61,10 +58,7 @@ class SegmentationTrainingApp:
             type=int,
         )
         parser.add_argument(
-            "--epochs",
-            help="Number of epochs to train for",
-            default=1,
-            type=int,
+            "--epochs", help="Number of epochs to train for", default=1, type=int,
         )
 
         parser.add_argument(
@@ -177,9 +171,7 @@ class SegmentationTrainingApp:
 
     def initTrainDl(self):
         train_ds = TrainingLuna2dSegmentationDataset(
-            val_stride=2,
-            isValSet_bool=False,
-            contextSlices_count=3,
+            val_stride=2, isValSet_bool=False, contextSlices_count=3,
         )
 
         batch_size = self.cli_args.batch_size
@@ -197,9 +189,7 @@ class SegmentationTrainingApp:
 
     def initValDl(self):
         val_ds = Luna2dSegmentationDataset(
-            val_stride=2,
-            isValSet_bool=True,
-            contextSlices_count=3,
+            val_stride=2, isValSet_bool=True, contextSlices_count=3,
         )
 
         batch_size = self.cli_args.batch_size
@@ -216,10 +206,7 @@ class SegmentationTrainingApp:
         return val_dl
 
     def initTestDl(self):
-        test_ds = LunaDataset(
-            val_test_stride=5,
-            isTestSet_bool=True
-        )       
+        test_ds = LunaDataset(val_test_stride=5, isTestSet_bool=True)
 
         batch_size = self.cli_args.batch_size
         if self.use_cuda:
@@ -260,7 +247,7 @@ class SegmentationTrainingApp:
 
         if self.cli_args.doTest:
             epoch_ndx = 1
-            valMetrics_t = self.doValidation(epoch_ndx, test_dl)
+            valMetrics_t = self.doTest(epoch_ndx, test_dl)
             score = self.logMetrics(epoch_ndx, "val", testMetrics_t)
             best_score = max(score, best_score)
 
@@ -304,9 +291,7 @@ class SegmentationTrainingApp:
         train_dl.dataset.shuffleSamples()
 
         batch_iter = enumerateWithEstimate(
-            train_dl,
-            "E{} Training".format(epoch_ndx),
-            start_ndx=train_dl.num_workers,
+            train_dl, "E{} Training".format(epoch_ndx), start_ndx=train_dl.num_workers,
         )
         for batch_ndx, batch_tup in batch_iter:
             self.optimizer.zero_grad()
@@ -346,6 +331,7 @@ class SegmentationTrainingApp:
             testMetrics_g = torch.zeros(
                 METRICS_SIZE, len(test_dl.dataset), device=self.device
             )
+            # self.segmentation_model = torch.load()
             self.segmentation_model.eval()
 
             batch_iter = enumerateWithEstimate(
@@ -460,11 +446,7 @@ class SegmentationTrainingApp:
                     image_a[image_a < 0] = 0
                     image_a[image_a > 1] = 1
                     writer.add_image(
-                        "{}/{}_label_{}".format(
-                            mode_str,
-                            series_ndx,
-                            slice_ndx,
-                        ),
+                        "{}/{}_label_{}".format(mode_str, series_ndx, slice_ndx,),
                         image_a,
                         self.totalTrainingSamples_count,
                         dataformats="HWC",
@@ -474,12 +456,7 @@ class SegmentationTrainingApp:
                 writer.flush()
 
     def logMetrics(self, epoch_ndx, mode_str, metrics_t):
-        log.info(
-            "E{} {}".format(
-                epoch_ndx,
-                type(self).__name__,
-            )
-        )
+        log.info("E{} {}".format(epoch_ndx, type(self).__name__,))
 
         metrics_a = metrics_t.detach().numpy()
         sum_a = metrics_a.sum(axis=1)
@@ -519,9 +496,7 @@ class SegmentationTrainingApp:
                 + "{pr/recall:.4f} recall, "
                 + "{pr/f1_score:.4f} f1 score"
             ).format(
-                epoch_ndx,
-                mode_str,
-                **metrics_dict,
+                epoch_ndx, mode_str, **metrics_dict,
             )
         )
         log.info(
@@ -530,9 +505,7 @@ class SegmentationTrainingApp:
                 + "{loss/all:.4f} loss, "
                 + "{percent_all/tp:-5.1f}% tp, {percent_all/fn:-5.1f}% fn, {percent_all/fp:-9.1f}% fp"
             ).format(
-                epoch_ndx,
-                mode_str + "_all",
-                **metrics_dict,
+                epoch_ndx, mode_str + "_all", **metrics_dict,
             )
         )
 
