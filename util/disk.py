@@ -1,11 +1,10 @@
 import gzip
 
-from diskcache import FanoutCache, Disk
-
 from diskcache import FanoutCache, Disk, core
 from diskcache.core import io
 from io import BytesIO
 from diskcache.core import MODE_BINARY
+from cassandra.cqltypes import BytesType
 
 from util.logconf import logging
 

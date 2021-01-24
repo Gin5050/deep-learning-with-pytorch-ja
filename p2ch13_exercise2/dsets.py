@@ -91,37 +91,16 @@ def getCandidateInfoList(requireOnDisk_bool=True):
     candidateInfo_list.sort(reverse=True)
 
     # 存在しないseries_uidを削除
-    idx_list = []
-    print(len(candidateInfo_list))
-    for idx, candidate_tup in enumerate(candidateInfo_list):
-        series_uid = candidate_tup.series_uid
-        try:
-            mhd_path = glob.glob(
-                "data-unversioned/part2/luna/subset*/{}.mhd".format(series_uid)
-            )[0]
-        except IndexError:
-            idx_list.append(idx)
-
-    for idx in idx_list:
-        del candidateInfo_list[idx]
-    print(len(candidateInfo_list))
-    print(len(idx_list))
-
     # idx_list = []
     # print(len(candidateInfo_list))
     # for idx, candidate_tup in enumerate(candidateInfo_list):
     #     series_uid = candidate_tup.series_uid
-    #     try:
+        
     #         mhd_path = glob.glob(
     #             "data-unversioned/part2/luna/subset*/{}.mhd".format(series_uid)
     #         )[0]
     #     except IndexError:
     #         idx_list.append(idx)
-
-    # for idx in idx_list:
-    #     del candidateInfo_list[idx]
-    # print(len(candidateInfo_list))
-    # print(len(idx_list))
 
     return candidateInfo_list
 
