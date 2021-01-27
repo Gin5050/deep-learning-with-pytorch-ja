@@ -48,10 +48,7 @@ class LunaTrainingApp:
             type=int,
         )
         parser.add_argument(
-            "--epochs",
-            help="Number of epochs to train for",
-            default=1,
-            type=int,
+            "--epochs", help="Number of epochs to train for", default=1, type=int,
         )
         parser.add_argument(
             "--balanced",
@@ -167,9 +164,6 @@ class LunaTrainingApp:
             augmentation_dict=self.augmentation_dict,
         )
 
-        print("======train len")
-        print(len(train_ds))
-
         batch_size = self.cli_args.batch_size
         if self.use_cuda:
             batch_size *= torch.cuda.device_count()
@@ -184,13 +178,7 @@ class LunaTrainingApp:
         return train_dl
 
     def initValDl(self):
-        val_ds = LunaDataset(
-            val_stride=10,
-            isValSet_bool=True,
-        )
-
-        print("======val len")
-        print(len(val_ds))
+        val_ds = LunaDataset(val_stride=10, isValSet_bool=True,)
 
         batch_size = self.cli_args.batch_size
         if self.use_cuda:
@@ -224,7 +212,6 @@ class LunaTrainingApp:
 
         train_dl = self.initTrainDl()
         val_dl = self.initValDl()
-        test_dl = self.initTestDl()
 
         for epoch_ndx in range(1, self.cli_args.epochs + 1):
 
@@ -257,24 +244,17 @@ class LunaTrainingApp:
         self.model.train()
         train_dl.dataset.shuffleSamples()
         trnMetrics_g = torch.zeros(
-            METRICS_SIZE,
-            len(train_dl.dataset),
-            device=self.device,
+            METRICS_SIZE, len(train_dl.dataset), device=self.device,
         )
 
         batch_iter = enumerateWithEstimate(
-            train_dl,
-            "E{} Training".format(epoch_ndx),
-            start_ndx=train_dl.num_workers,
+            train_dl, "E{} Training".format(epoch_ndx), start_ndx=train_dl.num_workers,
         )
         for batch_ndx, batch_tup in batch_iter:
             self.optimizer.zero_grad()
 
             loss_var = self.computeBatchLoss(
-                batch_ndx,
-                batch_tup,
-                train_dl.batch_size,
-                trnMetrics_g,
+                batch_ndx, batch_tup, train_dl.batch_size, trnMetrics_g,
             )
 
             loss_var.backward()
@@ -288,9 +268,7 @@ class LunaTrainingApp:
         with torch.no_grad():
             self.model.eval()
             valMetrics_g = torch.zeros(
-                METRICS_SIZE,
-                len(val_dl.dataset),
-                device=self.device,
+                METRICS_SIZE, len(val_dl.dataset), device=self.device,
             )
 
             batch_iter = enumerateWithEstimate(
@@ -300,10 +278,7 @@ class LunaTrainingApp:
             )
             for batch_ndx, batch_tup in batch_iter:
                 self.computeBatchLoss(
-                    batch_ndx,
-                    batch_tup,
-                    val_dl.batch_size,
-                    valMetrics_g,
+                    batch_ndx, batch_tup, val_dl.batch_size, valMetrics_g,
                 )
 
         return valMetrics_g.to("cpu")
@@ -324,10 +299,7 @@ class LunaTrainingApp:
         logits_g, probability_g = self.model(input_g)
 
         loss_func = nn.CrossEntropyLoss(reduction="none")
-        loss_g = loss_func(
-            logits_g,
-            label_g[:, 1],
-        )
+        loss_g = loss_func(logits_g, label_g[:, 1],)
         start_ndx = batch_ndx * batch_size
         end_ndx = start_ndx + label_t.size(0)
 
@@ -338,19 +310,10 @@ class LunaTrainingApp:
         return loss_g.mean()
 
     def logMetrics(
-        self,
-        epoch_ndx,
-        mode_str,
-        metrics_t,
-        classificationThreshold=0.5,
+        self, epoch_ndx, mode_str, metrics_t, classificationThreshold=0.5,
     ):
         self.initTensorboardWriters()
-        log.info(
-            "E{} {}".format(
-                epoch_ndx,
-                type(self).__name__,
-            )
-        )
+        log.info("E{} {}".format(epoch_ndx, type(self).__name__,))
 
         negLabel_mask = metrics_t[METRICS_LABEL_NDX] <= classificationThreshold
         negPred_mask = metrics_t[METRICS_PRED_NDX] <= classificationThreshold
@@ -395,9 +358,7 @@ class LunaTrainingApp:
                 + "{pr/recall:.4f} recall, "
                 + "{pr/f1_score:.4f} f1 score"
             ).format(
-                epoch_ndx,
-                mode_str,
-                **metrics_dict,
+                epoch_ndx, mode_str, **metrics_dict,
             )
         )
         log.info(
