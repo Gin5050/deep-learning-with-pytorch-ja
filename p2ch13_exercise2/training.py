@@ -145,7 +145,7 @@ class SegmentationTrainingApp:
     def initModel(self):
         segmentation_model = UNetWrapper(
             in_channels=7,
-            n_classes=1,
+            n_classes=2,
             depth=3,
             wf=4,
             padding=True,

@@ -261,6 +261,7 @@ class Luna2dSegmentationDataset(Dataset):
         self.fullCt_bool = fullCt_bool
 
         if series_uid:
+            # self.series_list = [series_uid]
             self.series_list = [*series_uid]
         else:
             self.series_list = sorted(getCandidateInfoDict().keys())
