@@ -126,6 +126,7 @@ class Ct:
             if candidate_tup.isNodule_bool
         ]
         self.positive_mask = self.buildAnnotationMask(self.positiveInfo_list)
+
         self.positive_indexes = (
             self.positive_mask.sum(axis=(1, 2)).nonzero()[0].tolist()
         )
