@@ -1,7 +1,7 @@
 # PyTorch 実践入門のリポジトリ
 
 <div align="center">
-<img src="./etc/表紙.png" alt="PyTorch実践入門" title="PyTorch実践入門" width=60%>
+<img src="./etc/表紙.png" alt="PyTorch実践入門" title="PyTorch実践入門" width=50% height=50%>
 </div>
 
 書籍「[PyTorch 実践入門](https://www.amazon.co.jp/gp/product/4839974691?pf_rd_r=1GSPXPNMCBQWPW9YW7AW&pf_rd_p=3d55ec74-6376-483a-a5a7-4e247166f80b)」 の日本語版リポジトリです。
