@@ -1,6 +1,7 @@
 # PyTorch 実践入門のリポジトリ
 
-書籍「PyTorch 実践入門」 の日本語版リポジトリです。
+![エビフライトライアングル](jpg "サンプル")
+書籍「[PyTorch 実践入門](https://www.amazon.co.jp/gp/product/4839974691?pf_rd_r=1GSPXPNMCBQWPW9YW7AW&pf_rd_p=3d55ec74-6376-483a-a5a7-4e247166f80b)」 の日本語版リポジトリです。
 
 [こちら](https://github.com/deep-learning-with-pytorch/dlwpt-code)が原著のリポジトリになります。本リポジトリにあるコードは演習問題の解答をのぞいて全て、上記リポジトリから引用しております。
 
