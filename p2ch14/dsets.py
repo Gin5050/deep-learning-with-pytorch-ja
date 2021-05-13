@@ -49,6 +49,8 @@ def getCandidateInfoList(requireOnDisk_bool=True):
     with open("data/part2/luna/annotations_with_malignancy.csv", "r") as f:
         for row in list(csv.reader(f))[1:]:
             series_uid = row[0]
+            if series_uid not in presentOnDisk_set and requireOnDisk_bool:
+                continue
             annotationCenter_xyz = tuple([float(x) for x in row[1:4]])
             annotationDiameter_mm = float(row[4])
             isMal_bool = {"False": False, "True": True}[row[5]]
