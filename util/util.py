@@ -16,6 +16,7 @@ log.setLevel(logging.DEBUG)
 IrcTuple = collections.namedtuple('IrcTuple', ['index', 'row', 'col'])
 XyzTuple = collections.namedtuple('XyzTuple', ['x', 'y', 'z'])
 
+
 def irc2xyz(coord_irc, origin_xyz, vxSize_xyz, direction_a):
     cri_a = np.array(coord_irc)[::-1]
     origin_a = np.array(origin_xyz)
@@ -23,6 +24,7 @@ def irc2xyz(coord_irc, origin_xyz, vxSize_xyz, direction_a):
     coords_xyz = (direction_a @ (cri_a * vxSize_a)) + origin_a
     # coords_xyz = (direction_a @ (idx * vxSize_a)) + origin_a
     return XyzTuple(*coords_xyz)
+
 
 def xyz2irc(coord_xyz, origin_xyz, vxSize_xyz, direction_a):
     origin_a = np.array(origin_xyz)
@@ -43,9 +45,9 @@ def importstr(module_str, from_=None):
     if from_ is None and ':' in module_str:
         module_str, from_ = module_str.rsplit(':')
 
-    module = __import__(module_str)
+    module = __import__(module_str)  # モジュールをインポート
     for sub_str in module_str.split('.')[1:]:
-        module = getattr(module, sub_str)
+        module = getattr(module, sub_str)  # サブモジュールを取得
 
     if from_:
         try:
@@ -115,7 +117,8 @@ def prhist(ary, prefix_str=None, **kwargs):
 
     count_ary, bins_ary = np.histogram(ary, **kwargs)
     for i in range(count_ary.shape[0]):
-        print("{}{:-8.2f}".format(prefix_str, bins_ary[i]), "{:-10}".format(count_ary[i]))
+        print("{}{:-8.2f}".format(prefix_str,
+              bins_ary[i]), "{:-10}".format(count_ary[i]))
     print("{}{:-8.2f}".format(prefix_str, bins_ary[-1]))
 
 # def dumpCuda():
