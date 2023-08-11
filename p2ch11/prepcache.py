@@ -27,16 +27,17 @@ class LunaPrepCacheApp:
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--batch-size',
-            help='Batch size to use for training',
-            default=1024,
-            type=int,
-        )
+                            help='Batch size to use for training',
+                            default=1024,
+                            type=int,
+                            )
         parser.add_argument('--num-workers',
-            help='Number of worker processes for background data loading',
-            default=8,
-            type=int,
-        )
+                            help='Number of worker processes for background data loading',
+                            default=8,
+                            type=int,
+                            )
 
+        # sys_argvをパースしてself.cli_argsに格納
         self.cli_args = parser.parse_args(sys_argv)
 
     def main(self):
