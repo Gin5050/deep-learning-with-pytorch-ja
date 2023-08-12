@@ -306,20 +306,20 @@ class LunaTrainingApp:
             type(self).__name__,
         ))
 
-        negLabel_mask = metrics_t[METRICS_LABEL_NDX] <= classificationThreshold
-        negPred_mask = metrics_t[METRICS_PRED_NDX] <= classificationThreshold
+        negLabel_mask = metrics_t[METRICS_LABEL_NDX] <= classificationThreshold # 実際に結節ではないラベルのbool型のマスク
+        negPred_mask = metrics_t[METRICS_PRED_NDX] <= classificationThreshold # 結節ではないと予測したラベルのbool型のマスク
 
-        posLabel_mask = ~negLabel_mask
-        posPred_mask = ~negPred_mask
+        posLabel_mask = ~negLabel_mask # 実際に結節であるラベルのbool型のマスク
+        posPred_mask = ~negPred_mask # 結節であると予測したラベルのbool型のマスク
 
-        neg_count = int(negLabel_mask.sum())
-        pos_count = int(posLabel_mask.sum())
+        neg_count = int(negLabel_mask.sum()) # TN + FP (実際に結節ではないデータ数)
+        pos_count = int(posLabel_mask.sum()) # TP + FN (実際に結節であるデータ数)
 
-        trueNeg_count = neg_correct = int((negLabel_mask & negPred_mask).sum())
-        truePos_count = pos_correct = int((posLabel_mask & posPred_mask).sum())
+        trueNeg_count = neg_correct = int((negLabel_mask & negPred_mask).sum()) # TN (実際に結節ではないデータを結節ではないと予測したデータ数)
+        truePos_count = pos_correct = int((posLabel_mask & posPred_mask).sum()) # TP (実際に結節であるデータを結節であると予測したデータ数)
 
-        falsePos_count = neg_count - neg_correct
-        falseNeg_count = pos_count - pos_correct
+        falsePos_count = neg_count - neg_correct # FP (実際に結節ではないデータを結節であると予測したデータ数)
+        falseNeg_count = pos_count - pos_correct # FN (実際に結節であるデータを結節ではないと予測したデータ数)
 
         metrics_dict = {}
         metrics_dict['loss/all'] = metrics_t[METRICS_LOSS_NDX].mean()
@@ -327,8 +327,8 @@ class LunaTrainingApp:
         metrics_dict['loss/pos'] = metrics_t[METRICS_LOSS_NDX, posLabel_mask].mean()
 
         metrics_dict['correct/all'] = (pos_correct + neg_correct) / metrics_t.shape[1] * 100
-        metrics_dict['correct/neg'] = (neg_correct) / neg_count * 100
-        metrics_dict['correct/pos'] = (pos_correct) / pos_count * 100
+        metrics_dict['correct/neg'] = (neg_correct) / neg_count * 100 # TN / (TN + FP) * 100, 実際に結節でないデータのうち結節でない判断できた割合
+        metrics_dict['correct/pos'] = (pos_correct) / pos_count * 100 # TP / (TP + FN) * 100, 実際に結節であるデータのうち結節であると判断できた割合
 
         precision = metrics_dict['pr/precision'] = \
             truePos_count / np.float32(truePos_count + falsePos_count)
