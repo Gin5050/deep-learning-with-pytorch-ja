@@ -237,7 +237,7 @@ class LunaDataset(Dataset):
         isValSet_bool=None,
         series_uid=None,
         sortby_str="random",
-        ratio_int=0,
+        ratio_int=0, # 陰性サンプルと陽性サンプルの比率
         augmentation_dict=None,
         candidateInfo_list=None,
     ):
@@ -273,10 +273,10 @@ class LunaDataset(Dataset):
         else:
             raise Exception("Unknown sort: " + repr(sortby_str))
 
-        self.negative_list = [
+        self.negative_list = [ # ラベルが0のサンプルのリスト
             nt for nt in self.candidateInfo_list if not nt.isNodule_bool
         ]
-        self.pos_list = [nt for nt in self.candidateInfo_list if nt.isNodule_bool]
+        self.pos_list = [nt for nt in self.candidateInfo_list if nt.isNodule_bool] # ラベルが1のサンプルのリスト
 
         log.info(
             "{!r}: {} {} samples, {} neg, {} pos, {} ratio".format(
@@ -289,6 +289,7 @@ class LunaDataset(Dataset):
             )
         )
 
+    # 各エポックの最初に呼ばれる
     def shuffleSamples(self):
         if self.ratio_int:
             random.shuffle(self.negative_list)
@@ -306,10 +307,10 @@ class LunaDataset(Dataset):
 
             if ndx % (self.ratio_int + 1):
                 neg_ndx = ndx - 1 - pos_ndx
-                neg_ndx %= len(self.negative_list)
+                neg_ndx %= len(self.negative_list) # オーバーフロー対策
                 candidateInfo_tup = self.negative_list[neg_ndx]
             else:
-                pos_ndx %= len(self.pos_list)
+                pos_ndx %= len(self.pos_list) # 比が小さいとオーバーフローするため
                 candidateInfo_tup = self.pos_list[pos_ndx]
         else:
             candidateInfo_tup = self.candidateInfo_list[ndx]
