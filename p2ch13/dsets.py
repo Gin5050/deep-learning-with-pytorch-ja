@@ -48,7 +48,8 @@ def getCandidateInfoList(requireOnDisk_bool=True):
     presentOnDisk_set = {os.path.split(p)[-1][:-4] for p in mhd_list}
 
     candidateInfo_list = []
-    with open("data/part2/luna/annotations_with_malignancy.csv", "r") as f: # 結節についてはアノテーションデータですべて網羅されている...<1>
+    # 結節についてはアノテーションデータですべて網羅されている...<1>
+    with open("data/part2/luna/annotations_with_malignancy.csv", "r") as f:
         for row in list(csv.reader(f))[1:]:
             series_uid = row[0]
             if series_uid not in presentOnDisk_set and requireOnDisk_bool:
@@ -68,7 +69,7 @@ def getCandidateInfoList(requireOnDisk_bool=True):
                 )
             )
 
-    with open("data/part2/luna/candidates.csv", "r") as f: # ので、こっちでは結節でないもののみを取得...<1>
+    with open("data/part2/luna/candidates.csv", "r") as f:  # ので、こっちでは結節でないもののみを取得...<1>
         for row in list(csv.reader(f))[1:]:
             series_uid = row[0]
 
@@ -127,7 +128,7 @@ class Ct:
 
         candidateInfo_list = getCandidateInfoDict()[self.series_uid]
 
-        self.positiveInfo_list = [ # 実際に結節である場合のみの結節周囲データ
+        self.positiveInfo_list = [  # 実際に結節である場合のみの結節周囲データ
             candidate_tup
             for candidate_tup in candidateInfo_list
             if candidate_tup.isNodule_bool
@@ -138,7 +139,8 @@ class Ct:
         )
 
     def buildAnnotationMask(self, positiveInfo_list, threshold_hu=-700):
-        boundingBox_a = np.zeros_like(self.hu_a, dtype=np.bool) # 一つのCT全体のマスクを0で初期化
+        boundingBox_a = np.zeros_like(
+            self.hu_a, dtype=np.bool)  # 一つのCT全体のマスクを0で初期化
 
         for candidateInfo_tup in positiveInfo_list:
             center_irc = xyz2irc(
@@ -186,12 +188,12 @@ class Ct:
             # assert col_radius > 0
 
             boundingBox_a[
-                ci - index_radius : ci + index_radius + 1,
-                cr - row_radius : cr + row_radius + 1,
-                cc - col_radius : cc + col_radius + 1,
+                ci - index_radius: ci + index_radius + 1,
+                cr - row_radius: cr + row_radius + 1,
+                cc - col_radius: cc + col_radius + 1,
             ] = True
 
-        mask_a = boundingBox_a & (self.hu_a > threshold_hu) # 矩形領域の角を取ることができる
+        mask_a = boundingBox_a & (self.hu_a > threshold_hu)  # 矩形領域の角を取ることができる
 
         return mask_a
 
@@ -242,7 +244,7 @@ def getCt(series_uid):
 
 
 @raw_cache.memoize(typed=True)
-def getCtRawCandidate(series_uid, center_xyz, width_irc): 
+def getCtRawCandidate(series_uid, center_xyz, width_irc):
     # series_uidで指定されたある人のCTデータ全体に対して結節マスクを含む情報を取得、
     # CTの値をクリップしてから結節周囲のデータ、結節マスクおよび結節の中心座標を返す
     ct = getCt(series_uid)
@@ -302,13 +304,15 @@ class Luna2dSegmentationDataset(Dataset):
             cit for cit in self.candidateInfo_list if cit.series_uid in series_set
         ]
 
-        self.pos_list = [nt for nt in self.candidateInfo_list if nt.isNodule_bool]
+        self.pos_list = [
+            nt for nt in self.candidateInfo_list if nt.isNodule_bool]
 
         log.info(
             "{!r}: {} {} series, {} slices, {} nodules".format(
                 self,
                 len(self.series_list),
-                {None: "general", True: "validation", False: "training"}[isValSet_bool],
+                {None: "general", True: "validation",
+                    False: "training"}[isValSet_bool],
                 len(self.sample_list),
                 len(self.pos_list),
             )
@@ -371,10 +375,10 @@ class TrainingLuna2dSegmentationDataset(Luna2dSegmentationDataset):
         row_offset = random.randrange(0, 32)
         col_offset = random.randrange(0, 32)
         ct_t = torch.from_numpy(
-            ct_a[:, row_offset : row_offset + 64, col_offset : col_offset + 64]
+            ct_a[:, row_offset: row_offset + 64, col_offset: col_offset + 64]
         ).to(torch.float32)
         pos_t = torch.from_numpy(
-            pos_a[:, row_offset : row_offset + 64, col_offset : col_offset + 64]
+            pos_a[:, row_offset: row_offset + 64, col_offset: col_offset + 64]
         ).to(torch.long)
 
         slice_ndx = center_irc.index
@@ -382,13 +386,14 @@ class TrainingLuna2dSegmentationDataset(Luna2dSegmentationDataset):
         return ct_t, pos_t, candidateInfo_tup.series_uid, slice_ndx
 
 
-class PrepcacheLunaDataset(Dataset): 
+class PrepcacheLunaDataset(Dataset):
     # こいつを実行するとCTデータの値や結節マスクを事前に計算されキャッシュに保存されるので、処理が高速化する
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         self.candidateInfo_list = getCandidateInfoList()
-        self.pos_list = [nt for nt in self.candidateInfo_list if nt.isNodule_bool]
+        self.pos_list = [
+            nt for nt in self.candidateInfo_list if nt.isNodule_bool]
 
         self.seen_set = set()
         self.candidateInfo_list.sort(key=lambda x: x.series_uid)
@@ -401,7 +406,8 @@ class PrepcacheLunaDataset(Dataset):
 
         candidateInfo_tup = self.candidateInfo_list[ndx]
         getCtRawCandidate(
-            candidateInfo_tup.series_uid, candidateInfo_tup.center_xyz, (7, 96, 96)
+            candidateInfo_tup.series_uid, candidateInfo_tup.center_xyz, (
+                7, 96, 96)
         )
 
         series_uid = candidateInfo_tup.series_uid
@@ -421,7 +427,8 @@ class TvTrainingLuna2dSegmentationDataset(torch.utils.data.Dataset):
         assert contextSlices_count == 3
         data = torch.load("./imgs_and_masks.pt")
         suids = list(set(data["suids"]))
-        trn_mask_suids = torch.arange(len(suids)) % val_stride < (val_stride - 1)
+        trn_mask_suids = torch.arange(
+            len(suids)) % val_stride < (val_stride - 1)
         trn_suids = {s for i, s in zip(trn_mask_suids, suids) if i}
         trn_mask = torch.tensor([(s in trn_suids) for s in data["suids"]])
         if not isValSet_bool:
@@ -443,9 +450,10 @@ class TvTrainingLuna2dSegmentationDataset(torch.utils.data.Dataset):
         oh, ow = torch.randint(0, 32, (2,))
         sl = self.masks.size(1) // 2
         return (
-            self.imgs[i, :, oh : oh + 64, ow : ow + 64],
+            self.imgs[i, :, oh: oh + 64, ow: ow + 64],
             1,
-            self.masks[i, sl : sl + 1, oh : oh + 64, ow : ow + 64].to(torch.float32),
+            self.masks[i, sl: sl + 1, oh: oh + 64,
+                       ow: ow + 64].to(torch.float32),
             self.suids[i],
             9999,
         )

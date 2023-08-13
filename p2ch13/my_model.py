@@ -49,3 +49,31 @@ class UNetWrapper(nn.Module):
         un_output = self.unet(bn_output)  # UNetを実行
         fn_output = self.final(un_output)  # sigmoid関数により出力を0から1の範囲に収める
         return fn_output
+
+class SegmentationAugmentation(nn.Module):
+    def __init__(self, flip=None, offset=None, scale=None, rotate=None, noise=None):
+        super().__init__()
+
+        self.flip = flip
+        self.offset = offset
+        self.scale = scale
+        self.rotate = rotate
+        self.noise = noise
+
+    def forward(self, input_g, label_g):
+        transform_t = self._build2dTransformMatrix()
+
+    def _build2dTransformMatrix(self):
+        """2D画像の変換行列を作成する"""
+        transform_t = torch.eye(3) # 3x3の単位行列を作成
+
+        for i in range(2):
+            if self.flip:
+                if random.random() > 0.5: # 50%の確率で反転
+                    transform_t[i, i] *= -1 # 対角成分のi番目を-1倍する(反転) i=0のときx軸方向に反転, i=1のときy軸方向に反転
+            
+            if self.offset:
+                offset_float = self.offset
+                random_float = random.random() * 2 - 1 # -1から1の乱数を作成
+                transform_t[i, 2] = offset_float * random_float
+
