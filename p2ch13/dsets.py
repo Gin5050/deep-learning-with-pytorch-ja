@@ -48,7 +48,7 @@ def getCandidateInfoList(requireOnDisk_bool=True):
     presentOnDisk_set = {os.path.split(p)[-1][:-4] for p in mhd_list}
 
     candidateInfo_list = []
-    with open("data/part2/luna/annotations_with_malignancy.csv", "r") as f:
+    with open("data/part2/luna/annotations_with_malignancy.csv", "r") as f: # 結節についてはアノテーションデータですべて網羅されている...<1>
         for row in list(csv.reader(f))[1:]:
             series_uid = row[0]
             if series_uid not in presentOnDisk_set and requireOnDisk_bool:
@@ -68,7 +68,7 @@ def getCandidateInfoList(requireOnDisk_bool=True):
                 )
             )
 
-    with open("data/part2/luna/candidates.csv", "r") as f:
+    with open("data/part2/luna/candidates.csv", "r") as f: # ので、こっちでは結節でないもののみを取得...<1>
         for row in list(csv.reader(f))[1:]:
             series_uid = row[0]
 
@@ -127,7 +127,7 @@ class Ct:
 
         candidateInfo_list = getCandidateInfoDict()[self.series_uid]
 
-        self.positiveInfo_list = [
+        self.positiveInfo_list = [ # 実際に結節である場合のみの結節周囲データ
             candidate_tup
             for candidate_tup in candidateInfo_list
             if candidate_tup.isNodule_bool
@@ -138,7 +138,7 @@ class Ct:
         )
 
     def buildAnnotationMask(self, positiveInfo_list, threshold_hu=-700):
-        boundingBox_a = np.zeros_like(self.hu_a, dtype=np.bool)
+        boundingBox_a = np.zeros_like(self.hu_a, dtype=np.bool) # 一つのCT全体のマスクを0で初期化
 
         for candidateInfo_tup in positiveInfo_list:
             center_irc = xyz2irc(
@@ -191,7 +191,7 @@ class Ct:
                 cc - col_radius : cc + col_radius + 1,
             ] = True
 
-        mask_a = boundingBox_a & (self.hu_a > threshold_hu)
+        mask_a = boundingBox_a & (self.hu_a > threshold_hu) # 矩形領域の角を取ることができる
 
         return mask_a
 
@@ -242,7 +242,9 @@ def getCt(series_uid):
 
 
 @raw_cache.memoize(typed=True)
-def getCtRawCandidate(series_uid, center_xyz, width_irc):
+def getCtRawCandidate(series_uid, center_xyz, width_irc): 
+    # series_uidで指定されたある人のCTデータ全体に対して結節マスクを含む情報を取得、
+    # CTの値をクリップしてから結節周囲のデータ、結節マスクおよび結節の中心座標を返す
     ct = getCt(series_uid)
     ct_chunk, pos_chunk, center_irc = ct.getRawCandidate(center_xyz, width_irc)
     ct_chunk.clip(-1000, 1000, ct_chunk)
@@ -380,7 +382,8 @@ class TrainingLuna2dSegmentationDataset(Luna2dSegmentationDataset):
         return ct_t, pos_t, candidateInfo_tup.series_uid, slice_ndx
 
 
-class PrepcacheLunaDataset(Dataset):
+class PrepcacheLunaDataset(Dataset): 
+    # こいつを実行するとCTデータの値や結節マスクを事前に計算されキャッシュに保存されるので、処理が高速化する
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
