@@ -107,7 +107,10 @@ class Ct:
         self.direction_a = np.array(ct_mhd.GetDirection()).reshape(3, 3)
 
     def getRawCandidate(self, center_xyz, width_irc):
-        center_irc = xyz2irc(
+        '''
+        Returns: (入力中心座標周りを切り取ったCTの塊 (ct_chank), 中心座標 (center_irc))
+        '''
+        center_irc = xyz2irc(  # 中心XYZ座標をIRC座標に変換
             center_xyz,
             self.origin_xyz,
             self.vxSize_xyz,
@@ -146,6 +149,7 @@ def getCt(series_uid):
 
 
 @raw_cache.memoize(typed=True)
+# UIDと中心座標を入力として、メモ化を行いながらCTの塊と中心座標を返す
 def getCtRawCandidate(series_uid, center_xyz, width_irc):
     ct = getCt(series_uid)
     ct_chunk, center_irc = ct.getRawCandidate(center_xyz, width_irc)

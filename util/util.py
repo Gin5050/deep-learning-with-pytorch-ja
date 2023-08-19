@@ -18,6 +18,7 @@ XyzTuple = collections.namedtuple('XyzTuple', ['x', 'y', 'z'])
 
 
 def irc2xyz(coord_irc, origin_xyz, vxSize_xyz, direction_a):
+    # 与えられたxyz座標((2, 3, 100)とか)をirc座標に移す関数
     cri_a = np.array(coord_irc)[::-1]
     origin_a = np.array(origin_xyz)
     vxSize_a = np.array(vxSize_xyz)

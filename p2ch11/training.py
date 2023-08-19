@@ -170,7 +170,7 @@ class LunaTrainingApp:
         self.model.train()  # モデルを訓練モードにする
         trnMetrics_g = torch.zeros(  # 訓練データの評価指標を格納するテンソル
             METRICS_SIZE,  # METRICS_SIZE = 3
-            len(train_dl.dataset),  # batchの数?
+            len(train_dl.dataset),  # 全データの数
             device=self.device,
         )
 
