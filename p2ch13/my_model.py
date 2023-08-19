@@ -75,5 +75,5 @@ class SegmentationAugmentation(nn.Module):
             if self.offset:
                 offset_float = self.offset
                 random_float = random.random() * 2 - 1 # -1から1の乱数を作成
-                transform_t[i, 2] = offset_float * random_float
+                transform_t[i, 2] = offset_float * random_float 
 
