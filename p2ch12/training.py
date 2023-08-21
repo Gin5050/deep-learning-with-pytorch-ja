@@ -23,10 +23,11 @@ log.setLevel(logging.INFO)
 # log.setLevel(logging.DEBUG)
 
 # Used for computeBatchLoss and logMetrics to index into metrics_t/metrics_a
-METRICS_LABEL_NDX=0
-METRICS_PRED_NDX=1
-METRICS_LOSS_NDX=2
+METRICS_LABEL_NDX = 0
+METRICS_PRED_NDX = 1
+METRICS_LOSS_NDX = 2
 METRICS_SIZE = 3
+
 
 class LunaTrainingApp:
     def __init__(self, sys_argv=None):
@@ -35,65 +36,65 @@ class LunaTrainingApp:
 
         parser = argparse.ArgumentParser()
         parser.add_argument('--batch-size',
-            help='Batch size to use for training',
-            default=32,
-            type=int,
-        )
+                            help='Batch size to use for training',
+                            default=32,
+                            type=int,
+                            )
         parser.add_argument('--num-workers',
-            help='Number of worker processes for background data loading',
-            default=8,
-            type=int,
-        )
+                            help='Number of worker processes for background data loading',
+                            default=8,
+                            type=int,
+                            )
         parser.add_argument('--epochs',
-            help='Number of epochs to train for',
-            default=1,
-            type=int,
-        )
+                            help='Number of epochs to train for',
+                            default=1,
+                            type=int,
+                            )
         parser.add_argument('--balanced',
-            help="Balance the training data to half positive, half negative.",
-            action='store_true',
-            default=False,
-        )
+                            help="Balance the training data to half positive, half negative.",
+                            action='store_true',
+                            default=False,
+                            )
         parser.add_argument('--augmented',
-            help="Augment the training data.",
-            action='store_true',
-            default=False,
-        )
+                            help="Augment the training data.",
+                            action='store_true',
+                            default=False,
+                            )
         parser.add_argument('--augment-flip',
-            help="Augment the training data by randomly flipping the data left-right, up-down, and front-back.",
-            action='store_true',
-            default=False,
-        )
+                            help="Augment the training data by randomly flipping the data left-right, up-down, and front-back.",
+                            action='store_true',
+                            default=False,
+                            )
         parser.add_argument('--augment-offset',
-            help="Augment the training data by randomly offsetting the data slightly along the X and Y axes.",
-            action='store_true',
-            default=False,
-        )
+                            help="Augment the training data by randomly offsetting the data slightly along the X and Y axes.",
+                            action='store_true',
+                            default=False,
+                            )
         parser.add_argument('--augment-scale',
-            help="Augment the training data by randomly increasing or decreasing the size of the candidate.",
-            action='store_true',
-            default=False,
-        )
+                            help="Augment the training data by randomly increasing or decreasing the size of the candidate.",
+                            action='store_true',
+                            default=False,
+                            )
         parser.add_argument('--augment-rotate',
-            help="Augment the training data by randomly rotating the data around the head-foot axis.",
-            action='store_true',
-            default=False,
-        )
+                            help="Augment the training data by randomly rotating the data around the head-foot axis.",
+                            action='store_true',
+                            default=False,
+                            )
         parser.add_argument('--augment-noise',
-            help="Augment the training data by randomly adding noise to the data.",
-            action='store_true',
-            default=False,
-        )
+                            help="Augment the training data by randomly adding noise to the data.",
+                            action='store_true',
+                            default=False,
+                            )
 
         parser.add_argument('--tb-prefix',
-            default='p2ch12',
-            help="Data prefix to use for Tensorboard run. Defaults to chapter.",
-        )
+                            default='p2ch12',
+                            help="Data prefix to use for Tensorboard run. Defaults to chapter.",
+                            )
         parser.add_argument('comment',
-            help="Comment suffix for Tensorboard run.",
-            nargs='?',
-            default='dlwpt',
-        )
+                            help="Comment suffix for Tensorboard run.",
+                            nargs='?',
+                            default='dlwpt',
+                            )
 
         self.cli_args = parser.parse_args(sys_argv)
         self.time_str = datetime.datetime.now().strftime('%Y-%m-%d_%H.%M.%S')
@@ -120,11 +121,11 @@ class LunaTrainingApp:
         self.model = self.initModel()
         self.optimizer = self.initOptimizer()
 
-
     def initModel(self):
         model = LunaModel()
         if self.use_cuda:
-            log.info("Using CUDA; {} devices.".format(torch.cuda.device_count()))
+            log.info("Using CUDA; {} devices.".format(
+                torch.cuda.device_count()))
             if torch.cuda.device_count() > 1:
                 model = nn.DataParallel(model)
             model = model.to(self.device)
@@ -176,13 +177,13 @@ class LunaTrainingApp:
 
     def initTensorboardWriters(self):
         if self.trn_writer is None:
-            log_dir = os.path.join('runs', self.cli_args.tb_prefix, self.time_str)
+            log_dir = os.path.join(
+                'runs', self.cli_args.tb_prefix, self.time_str)
 
             self.trn_writer = SummaryWriter(
                 log_dir=log_dir + '-trn_cls-' + self.cli_args.comment)
             self.val_writer = SummaryWriter(
                 log_dir=log_dir + '-val_cls-' + self.cli_args.comment)
-
 
     def main(self):
         log.info("Starting {}, {}".format(type(self).__name__, self.cli_args))
@@ -210,7 +211,6 @@ class LunaTrainingApp:
         if hasattr(self, 'trn_writer'):
             self.trn_writer.close()
             self.val_writer.close()
-
 
     def doTraining(self, epoch_ndx, train_dl):
         self.model.train()
@@ -243,7 +243,6 @@ class LunaTrainingApp:
 
         return trnMetrics_g.to('cpu')
 
-
     def doValidation(self, epoch_ndx, val_dl):
         with torch.no_grad():
             self.model.eval()
@@ -268,8 +267,6 @@ class LunaTrainingApp:
 
         return valMetrics_g.to('cpu')
 
-
-
     def computeBatchLoss(self, batch_ndx, batch_tup, batch_size, metrics_g):
         input_t, label_t, _series_list, _center_list = batch_tup
 
@@ -281,17 +278,16 @@ class LunaTrainingApp:
         loss_func = nn.CrossEntropyLoss(reduction='none')
         loss_g = loss_func(
             logits_g,
-            label_g[:,1],
+            label_g[:, 1],
         )
         start_ndx = batch_ndx * batch_size
         end_ndx = start_ndx + label_t.size(0)
 
-        metrics_g[METRICS_LABEL_NDX, start_ndx:end_ndx] = label_g[:,1]
-        metrics_g[METRICS_PRED_NDX, start_ndx:end_ndx] = probability_g[:,1]
+        metrics_g[METRICS_LABEL_NDX, start_ndx:end_ndx] = label_g[:, 1]
+        metrics_g[METRICS_PRED_NDX, start_ndx:end_ndx] = probability_g[:, 1]
         metrics_g[METRICS_LOSS_NDX, start_ndx:end_ndx] = loss_g
 
         return loss_g.mean()
-
 
     def logMetrics(
             self,
@@ -306,33 +302,44 @@ class LunaTrainingApp:
             type(self).__name__,
         ))
 
-        negLabel_mask = metrics_t[METRICS_LABEL_NDX] <= classificationThreshold # 実際に結節ではないラベルのbool型のマスク
-        negPred_mask = metrics_t[METRICS_PRED_NDX] <= classificationThreshold # 結節ではないと予測したラベルのbool型のマスク
+        # 実際に結節ではないラベルのbool型のマスク
+        negLabel_mask = metrics_t[METRICS_LABEL_NDX] <= classificationThreshold
+        # 結節ではないと予測したラベルのbool型のマスク
+        negPred_mask = metrics_t[METRICS_PRED_NDX] <= classificationThreshold
 
-        posLabel_mask = ~negLabel_mask # 実際に結節であるラベルのbool型のマスク
-        posPred_mask = ~negPred_mask # 結節であると予測したラベルのbool型のマスク
+        posLabel_mask = ~negLabel_mask  # 実際に結節であるラベルのbool型のマスク
+        posPred_mask = ~negPred_mask  # 結節であると予測したラベルのbool型のマスク
 
-        neg_count = int(negLabel_mask.sum()) # TN + FP (実際に結節ではないデータ数)
-        pos_count = int(posLabel_mask.sum()) # TP + FN (実際に結節であるデータ数)
+        neg_count = int(negLabel_mask.sum())  # TN + FP (実際に結節ではないデータ数)
+        pos_count = int(posLabel_mask.sum())  # TP + FN (実際に結節であるデータ数)
 
-        trueNeg_count = neg_correct = int((negLabel_mask & negPred_mask).sum()) # TN (実際に結節ではないデータを結節ではないと予測したデータ数)
-        truePos_count = pos_correct = int((posLabel_mask & posPred_mask).sum()) # TP (実際に結節であるデータを結節であると予測したデータ数)
+        # TN (実際に結節ではないデータを結節ではないと予測したデータ数)
+        trueNeg_count = neg_correct = int((negLabel_mask & negPred_mask).sum())
+        # TP (実際に結節であるデータを結節であると予測したデータ数)
+        truePos_count = pos_correct = int((posLabel_mask & posPred_mask).sum())
 
-        falsePos_count = neg_count - neg_correct # FP (実際に結節ではないデータを結節であると予測したデータ数)
-        falseNeg_count = pos_count - pos_correct # FN (実際に結節であるデータを結節ではないと予測したデータ数)
+        # FP (実際に結節ではないデータを結節であると予測したデータ数)
+        falsePos_count = neg_count - neg_correct
+        # FN (実際に結節であるデータを結節ではないと予測したデータ数)
+        falseNeg_count = pos_count - pos_correct
 
         metrics_dict = {}
         metrics_dict['loss/all'] = metrics_t[METRICS_LOSS_NDX].mean()
-        metrics_dict['loss/neg'] = metrics_t[METRICS_LOSS_NDX, negLabel_mask].mean()
-        metrics_dict['loss/pos'] = metrics_t[METRICS_LOSS_NDX, posLabel_mask].mean()
+        metrics_dict['loss/neg'] = metrics_t[METRICS_LOSS_NDX,
+                                             negLabel_mask].mean()
+        metrics_dict['loss/pos'] = metrics_t[METRICS_LOSS_NDX,
+                                             posLabel_mask].mean()
 
-        metrics_dict['correct/all'] = (pos_correct + neg_correct) / metrics_t.shape[1] * 100
-        metrics_dict['correct/neg'] = (neg_correct) / neg_count * 100 # TN / (TN + FP) * 100, 実際に結節でないデータのうち結節でない判断できた割合
-        metrics_dict['correct/pos'] = (pos_correct) / pos_count * 100 # TP / (TP + FN) * 100, 実際に結節であるデータのうち結節であると判断できた割合
+        metrics_dict['correct/all'] = (pos_correct +
+                                       neg_correct) / metrics_t.shape[1] * 100
+        # TN / (TN + FP) * 100, 実際に結節でないデータのうち結節でない判断できた割合
+        metrics_dict['correct/neg'] = (neg_correct) / neg_count * 100
+        # TP / (TP + FN) * 100, 実際に結節であるデータのうち結節であると判断できた割合
+        metrics_dict['correct/pos'] = (pos_correct) / pos_count * 100
 
         precision = metrics_dict['pr/precision'] = \
             truePos_count / np.float32(truePos_count + falsePos_count)
-        recall    = metrics_dict['pr/recall'] = \
+        recall = metrics_dict['pr/recall'] = \
             truePos_count / np.float32(truePos_count + falseNeg_count)
 
         metrics_dict['pr/f1_score'] = \
@@ -340,11 +347,11 @@ class LunaTrainingApp:
 
         log.info(
             ("E{} {:8} {loss/all:.4f} loss, "
-                 + "{correct/all:-5.1f}% correct, "
-                 + "{pr/precision:.4f} precision, "
-                 + "{pr/recall:.4f} recall, "
-                 + "{pr/f1_score:.4f} f1 score"
-            ).format(
+             + "{correct/all:-5.1f}% correct, "
+             + "{pr/precision:.4f} precision, "
+             + "{pr/recall:.4f} recall, "
+             + "{pr/f1_score:.4f} f1 score"
+             ).format(
                 epoch_ndx,
                 mode_str,
                 **metrics_dict,
@@ -352,8 +359,8 @@ class LunaTrainingApp:
         )
         log.info(
             ("E{} {:8} {loss/neg:.4f} loss, "
-                 + "{correct/neg:-5.1f}% correct ({neg_correct:} of {neg_count:})"
-            ).format(
+             + "{correct/neg:-5.1f}% correct ({neg_correct:} of {neg_count:})"
+             ).format(
                 epoch_ndx,
                 mode_str + '_neg',
                 neg_correct=neg_correct,
@@ -363,8 +370,8 @@ class LunaTrainingApp:
         )
         log.info(
             ("E{} {:8} {loss/pos:.4f} loss, "
-                 + "{correct/pos:-5.1f}% correct ({pos_correct:} of {pos_count:})"
-            ).format(
+             + "{correct/pos:-5.1f}% correct ({pos_correct:} of {pos_count:})"
+             ).format(
                 epoch_ndx,
                 mode_str + '_pos',
                 pos_correct=pos_correct,
