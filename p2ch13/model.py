@@ -16,7 +16,7 @@ log.setLevel(logging.DEBUG)
 
 
 class UNetWrapper(nn.Module):
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs):  # コンストラクタ
         # kwargs はコンストラクタに渡される全てのキーワード引数を含む辞書
         super().__init__()
 
