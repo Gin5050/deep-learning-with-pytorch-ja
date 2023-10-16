@@ -9,3 +9,5 @@ __pycache__/
 /data-unversioned/
 /runs/
 /torch1.7.1/
+
+p1ch4/fig/

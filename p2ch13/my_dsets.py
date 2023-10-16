@@ -22,54 +22,49 @@ from util.util import XyzTuple, xyz2irc
 from util.logconf import logging
 
 log = logging.getLogger(__name__)
-# log.setLevel(logging.WARN)
-# log.setLevel(logging.INFO)
+
 log.setLevel(logging.DEBUG)
 
-raw_cache = getCache("part2ch13_raw")
+raw_cache = getCache('part2ch13_raw')
 
 MaskTuple = namedtuple(
-    "MaskTuple",
-    "raw_dense_mask, dense_mask, body_mask, air_mask, raw_candidate_mask, candidate_mask, lung_mask, neg_mask, pos_mask",
+    'MaskTuple',
+    'raw_dense_mask, dense_mask, body_mask, air_mask, raw_candidate_mask, candidate_mask, lung_mask, neg_mask, pos_mask'
 )
 
 CandidateInfoTuple = namedtuple(
-    "CandidateInfoTuple",
-    "isNodule_bool, hasAnnotation_bool, isMal_bool, diameter_mm, series_uid, center_xyz",
+    'CandidateInfoTuple',
+    'isNodule_bool, hasAnnotation_bool, isMal_bool, diameter_mm, series_uid, center_xyz'
 )
 
 
 @functools.lru_cache(1)
 def getCandidateInfoList(requireOnDisk_bool=True):
-    # We construct a set with all series_uids that are present on disk.
-    # This will let us use the data, even if we haven't downloaded all of
-    # the subsets yet.
-    mhd_list = glob.glob("data-unversioned/part2/luna/subset*/*.mhd")
+    mhd_list = glob.glob('data-unversioned/part2/luna/subset*/*.mhd')
     presentOnDisk_set = {os.path.split(p)[-1][:-4] for p in mhd_list}
 
     candidateInfo_list = []
-    # 結節についてはアノテーションデータですべて網羅されている...<1>
-    with open("data/part2/luna/annotations_with_malignancy.csv", "r") as f:
+    with open('data/part2/luna/annotation_with_malignancy.csv', 'r') as f:  # 結節=1はすべてこの中に入ってる
         for row in list(csv.reader(f))[1:]:
             series_uid = row[0]
             if series_uid not in presentOnDisk_set and requireOnDisk_bool:
                 continue
             annotationCenter_xyz = tuple([float(x) for x in row[1:4]])
             annotationDiameter_mm = float(row[4])
-            isMal_bool = {"False": False, "True": True}[row[5]]
+            isMal_bool = {'False': False, 'True': True}[row[5]]
 
             candidateInfo_list.append(
                 CandidateInfoTuple(
-                    True,
-                    True,
-                    isMal_bool,
+                    True,  # 結節
+                    True,  # アノテーション
+                    isMal_bool,  # 悪性
                     annotationDiameter_mm,
                     series_uid,
-                    annotationCenter_xyz,
+                    annotationCenter_xyz
                 )
             )
 
-    with open("data/part2/luna/candidates.csv", "r") as f:  # ので、こっちでは結節でないもののみを取得...<1>
+    with open('data/part2/luna/candidate.csv') as f:
         for row in list(csv.reader(f))[1:]:
             series_uid = row[0]
 
@@ -80,16 +75,14 @@ def getCandidateInfoList(requireOnDisk_bool=True):
             candidateCenter_xyz = tuple([float(x) for x in row[1:4]])
 
             if not isNodule_bool:
-                candidateInfo_list.append(
-                    CandidateInfoTuple(
-                        False,
-                        False,
-                        False,
-                        0.0,
-                        series_uid,
-                        candidateCenter_xyz,
-                    )
-                )
+                candidateInfo_list.append(CandidateInfoTuple(
+                    False,
+                    False,
+                    False,
+                    0.0,
+                    series_uid,
+                    candidateCenter_xyz
+                ))
 
     candidateInfo_list.sort(reverse=True)
     return candidateInfo_list
@@ -101,9 +94,8 @@ def getCandidateInfoDict(requireOnDisk_bool=True):
     candidateInfo_dict = {}
 
     for candidateInfo_tup in candidateInfo_list:
-        candidateInfo_dict.setdefault(candidateInfo_tup.series_uid, []).append(
-            candidateInfo_tup
-        )
+        candidateInfo_dict.setdefault(
+            candidateInfo_tup.series_uid, []).append(candidateInfo_tup)
 
     return candidateInfo_dict
 
@@ -111,20 +103,17 @@ def getCandidateInfoDict(requireOnDisk_bool=True):
 class Ct:
     def __init__(self, series_uid):
         mhd_path = glob.glob(
-            "data-unversioned/part2/luna/subset*/{}.mhd".format(series_uid)
-        )[0]
+            'data-unversioned/part2/luna/subset*/{}.mhd'.format(series_uid))[0]
 
-        ct_mhd = sitk.ReadImage(mhd_path)
-        self.hu_a = np.array(sitk.GetArrayFromImage(ct_mhd), dtype=np.float32)
-
-        # CTs are natively expressed in https://en.wikipedia.org/wiki/Hounsfield_scale
-        # HU are scaled oddly, with 0 g/cc (air, approximately) being -1000 and 1 g/cc (water) being 0.
+        ct_mhd = sitk.ReadImage(mhd_path)  # mhd型に一旦して
+        self.hu_a = np.array(sitk.GetArrayFromImage(
+            ct_mhd), dtype=np.float32)  # numpy.arrayに落とし込む
 
         self.series_uid = series_uid
 
         self.origin_xyz = XyzTuple(*ct_mhd.GetOrigin())
         self.vxSize_xyz = XyzTuple(*ct_mhd.GetSpacing())
-        self.direction_a = np.array(ct_mhd.GetDirection()).reshape(3, 3)
+        self.direction_a = np.array(*ct_mhd.GetDirection()).reshape(3, 3)
 
         candidateInfo_list = getCandidateInfoDict()[self.series_uid]
 
@@ -133,6 +122,7 @@ class Ct:
             for candidate_tup in candidateInfo_list
             if candidate_tup.isNodule_bool
         ]
+
         self.positive_mask = self.buildAnnotationMask(self.positiveInfo_list)
         self.positive_indexes = (
             self.positive_mask.sum(axis=(1, 2)).nonzero()[0].tolist()
@@ -261,20 +251,20 @@ def getCtSampleSize(series_uid):
 
 class Luna2dSegmentationDataset(Dataset):
     def __init__(
-        self,
-        val_stride=0,
-        isValSet_bool=None,
-        series_uid=None,
-        contextSlices_count=3,
-        fullCt_bool=False,
+            self,
+            val_stride=0,
+            isValSet_bool=None,
+            series_uid=None,
+            contextSlices_count=3,
+            fullCt_bool=False
     ):
-        self.contextSlices_count = contextSlices_count
-        self.fullCt_bool = fullCt_bool
+        self.contextSlices_count = contextSlices_count  # 上下何枚チャネル取るか
+        self.fullCt_bool = fullCt_bool  # データ全体を使うか
 
         if series_uid:
-            self.series_list = [series_uid]
+            self.series_uid = [series_uid]
         else:
-            self.series_list = sorted(getCandidateInfoDict().keys())
+            self.series_uid = sorted(getCandidateInfoDict().keys())
 
         if isValSet_bool:
             assert val_stride > 0, val_stride
@@ -297,7 +287,7 @@ class Luna2dSegmentationDataset(Dataset):
                     (series_uid, slice_ndx) for slice_ndx in positive_indexes
                 ]
 
-        self.candidateInfo_list = getCandidateInfoList()
+        self.candidateInfoList = getCandidateInfoList()
 
         series_set = set(self.series_list)
         self.candidateInfo_list = [
@@ -327,24 +317,22 @@ class Luna2dSegmentationDataset(Dataset):
 
     def getitem_fullSlice(self, series_uid, slice_ndx):
         ct = getCt(series_uid)
-        ct_t = torch.zeros((self.contextSlices_count * 2 + 1, 512, 512))
+        ct_t = torch.zeros((self.contextSlices_count*2+1, 512, 512))
 
         start_ndx = slice_ndx - self.contextSlices_count
-        end_ndx = slice_ndx + self.contextSlices_count + 1
+        end_ndx = start_ndx + self.contextSlices_count + 1
         for i, context_ndx in enumerate(range(start_ndx, end_ndx)):
             context_ndx = max(context_ndx, 0)
-            context_ndx = min(context_ndx, ct.hu_a.shape[0] - 1)
+            context_ndx = min(context_ndx, ct.ch_a.shape[0]-1)
             ct_t[i] = torch.from_numpy(ct.hu_a[context_ndx].astype(np.float32))
 
-        # CTs are natively expressed in https://en.wikipedia.org/wiki/Hounsfield_scale
-        # HU are scaled oddly, with 0 g/cc (air, approximately) being -1000 and 1 g/cc (water) being 0.
-        # The lower bound gets rid of negative density stuff used to indicate out-of-FOV
-        # The upper bound nukes any weird hotspots and clamps bone down
         ct_t.clamp_(-1000, 1000)
 
         pos_t = torch.from_numpy(ct.positive_mask[slice_ndx]).unsqueeze(0)
 
         return ct_t, pos_t, ct.series_uid, slice_ndx
+
+# traing用のデータセット
 
 
 class TrainingLuna2dSegmentationDataset(Luna2dSegmentationDataset):
@@ -354,9 +342,9 @@ class TrainingLuna2dSegmentationDataset(Luna2dSegmentationDataset):
         self.ratio_int = 2
 
     def __len__(self):
-        return 300000
+        return 300_000
 
-    def shuffleSamples(self):
+    def shuffleSample(self):
         random.shuffle(self.candidateInfo_list)
         random.shuffle(self.pos_list)
 
@@ -384,76 +372,3 @@ class TrainingLuna2dSegmentationDataset(Luna2dSegmentationDataset):
         slice_ndx = center_irc.index
 
         return ct_t, pos_t, candidateInfo_tup.series_uid, slice_ndx
-
-
-class PrepcacheLunaDataset(Dataset):
-    # こいつを実行するとCTデータの値や結節マスクを事前に計算されキャッシュに保存されるので、処理が高速化する
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        self.candidateInfo_list = getCandidateInfoList()
-        self.pos_list = [
-            nt for nt in self.candidateInfo_list if nt.isNodule_bool]
-
-        self.seen_set = set()
-        self.candidateInfo_list.sort(key=lambda x: x.series_uid)
-
-    def __len__(self):
-        return len(self.candidateInfo_list)
-
-    def __getitem__(self, ndx):
-        # candidate_t, pos_t, series_uid, center_t = super().__getitem__(ndx)
-
-        candidateInfo_tup = self.candidateInfo_list[ndx]
-        getCtRawCandidate(
-            candidateInfo_tup.series_uid, candidateInfo_tup.center_xyz, (
-                7, 96, 96)
-        )
-
-        series_uid = candidateInfo_tup.series_uid
-        if series_uid not in self.seen_set:
-            self.seen_set.add(series_uid)
-
-            getCtSampleSize(series_uid)
-            # ct = getCt(series_uid)
-            # for mask_ndx in ct.positive_indexes:
-            #     build2dLungMask(series_uid, mask_ndx)
-
-        return 0, 1  # candidate_t, pos_t, series_uid, center_t
-
-
-class TvTrainingLuna2dSegmentationDataset(torch.utils.data.Dataset):
-    def __init__(self, isValSet_bool=False, val_stride=10, contextSlices_count=3):
-        assert contextSlices_count == 3
-        data = torch.load("./imgs_and_masks.pt")
-        suids = list(set(data["suids"]))
-        trn_mask_suids = torch.arange(
-            len(suids)) % val_stride < (val_stride - 1)
-        trn_suids = {s for i, s in zip(trn_mask_suids, suids) if i}
-        trn_mask = torch.tensor([(s in trn_suids) for s in data["suids"]])
-        if not isValSet_bool:
-            self.imgs = data["imgs"][trn_mask]
-            self.masks = data["masks"][trn_mask]
-            self.suids = [s for s, i in zip(data["suids"], trn_mask) if i]
-        else:
-            self.imgs = data["imgs"][~trn_mask]
-            self.masks = data["masks"][~trn_mask]
-            self.suids = [s for s, i in zip(data["suids"], trn_mask) if not i]
-        # discard spurious hotspots and clamp bone
-        self.imgs.clamp_(-1000, 1000)
-        self.imgs /= 1000
-
-    def __len__(self):
-        return len(self.imgs)
-
-    def __getitem__(self, i):
-        oh, ow = torch.randint(0, 32, (2,))
-        sl = self.masks.size(1) // 2
-        return (
-            self.imgs[i, :, oh: oh + 64, ow: ow + 64],
-            1,
-            self.masks[i, sl: sl + 1, oh: oh + 64,
-                       ow: ow + 64].to(torch.float32),
-            self.suids[i],
-            9999,
-        )
